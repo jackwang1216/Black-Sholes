@@ -1,0 +1,17 @@
+# Byte-compiled / optimized / C extensions
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+
+# IDE / Editor specific
+.vscode/
+.idea/
