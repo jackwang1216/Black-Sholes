@@ -5,7 +5,7 @@ from .utils import validate_parameters
 
 class BlackScholes:
     def __init__(self, S, K, T, r, sigma):
-        validate_parameters(S, K, T, sigma)
+        validate_parameters(S, K, T, sigma, r)
         self.S = S
         self.K = K
         self.T = T

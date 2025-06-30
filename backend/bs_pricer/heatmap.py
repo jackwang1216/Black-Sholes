@@ -1,0 +1,18 @@
+import numpy as np
+from .pricing import BlackScholes
+
+
+def generate_heatmap_grid(
+    base_S: float,
+    K: float,
+    T: float,
+    r: float,
+    base_sigma: float,
+    S_shock: np.ndarray,
+    sigma_shock: np.ndarray
+):
+    S_grid = base_S +S_shock[np.newaxis, :]
+    sigma_grid = base_sigma +sigma_shock[:, np.newaxis]
+    S_grid, sigma_grid = np.broadcast_arrays(S_grid, sigma_grid)
+    call_grid, put_grid = BlackScholes.price(S_grid, K, T, r, sigma_grid)
+    return call_grid, put_grid
