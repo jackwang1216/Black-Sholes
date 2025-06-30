@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import axios from 'axios';
 
 interface InputSliderProps {
   label: string;
@@ -57,12 +58,23 @@ function App() {
   const [putPrice, setPutPrice] = useState('$0.00');
 
   const handleCalculate = useCallback(async () => {
-    // NOTE: This is a placeholder. Replace with actual API call.
-    // Mocking the API call for now.
-    const call = 5.25;
-    const put = 3.85;
-    setCallPrice(`$${call.toFixed(2)}`);
-    setPutPrice(`$${put.toFixed(2)}`);
+    try{
+      const payload = {
+        S: underlyingPrice,
+        K: strikePrice,
+        T: expiry,
+        r: riskFreeRate,
+        sigma: volatility,
+      }
+      const response = await axios.post('http://localhost:8000/price', payload);
+      const data = response.data;
+      setCallPrice(data.call.toFixed(2));
+      setPutPrice(data.put.toFixed(2));
+    } catch (error){
+      console.error('There was a problem with your fetch:', error);
+      setCallPrice('Error')
+      setPutPrice('Error')
+    }
   }, [underlyingPrice, strikePrice, expiry, volatility, riskFreeRate]);
 
   return (
@@ -75,53 +87,53 @@ function App() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="bg-gray-800 rounded-xl p-8 shadow-lg">
-            <InputSlider 
-              label="Underlying Price (S)" 
-              description="Current price of the underlying asset" 
-              value={underlyingPrice} 
-              setValue={setUnderlyingPrice} 
-              min={0} 
-              max={200} 
-              step={1} 
+            <InputSlider
+              label="Underlying Price (S)"
+              description="Current price of the underlying asset"
+              value={underlyingPrice}
+              setValue={setUnderlyingPrice}
+              min={0}
+              max={200}
+              step={1}
             />
-            <InputSlider 
-              label="Strike Price (K)" 
-              description="Agreed exercise price at expiry" 
-              value={strikePrice} 
-              setValue={setStrikePrice} 
-              min={0} 
-              max={200} 
-              step={1} 
+            <InputSlider
+              label="Strike Price (K)"
+              description="Agreed exercise price at expiry"
+              value={strikePrice}
+              setValue={setStrikePrice}
+              min={0}
+              max={200}
+              step={1}
             />
-            <InputSlider 
-              label="Time to Expiry (years)" 
-              description="Years until option expiration" 
-              value={expiry} 
-              setValue={setExpiry} 
-              min={0} 
-              max={2} 
-              step={0.01} 
+            <InputSlider
+              label="Time to Expiry (years)"
+              description="Years until option expiration"
+              value={expiry}
+              setValue={setExpiry}
+              min={0}
+              max={2}
+              step={0.01}
             />
-            <InputSlider 
-              label="Volatility (σ)" 
-              description="Annualized standard deviation of returns" 
-              value={volatility} 
-              setValue={setVolatility} 
-              min={0.01} 
-              max={1.0} 
-              step={0.01} 
+            <InputSlider
+              label="Volatility (σ)"
+              description="Annualized standard deviation of returns"
+              value={volatility}
+              setValue={setVolatility}
+              min={0.01}
+              max={1.0}
+              step={0.01}
             />
-            <InputSlider 
-              label="Risk-free Rate (r)" 
-              description="Interest rate of a risk-free asset" 
-              value={riskFreeRate} 
-              setValue={setRiskFreeRate} 
-              min={0} 
-              max={0.1} 
-              step={0.001} 
+            <InputSlider
+              label="Risk-free Rate (r)"
+              description="Interest rate of a risk-free asset"
+              value={riskFreeRate}
+              setValue={setRiskFreeRate}
+              min={0}
+              max={0.1}
+              step={0.001}
             />
-            <button 
-              onClick={handleCalculate} 
+            <button
+              onClick={handleCalculate}
               className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105"
             >
               Calculate
