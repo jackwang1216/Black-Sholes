@@ -29,9 +29,10 @@ class PriceRequest(BaseModel):
 
 @app.post("/price")
 async def price_option(params: PriceRequest):
-    pricer = BlackScholes(params.S, params.K, params.T, params.r, params.sigma)
-    call, put = pricer.price()
-    return {"call": call, "put": put}
+    call, put = BlackScholes.price(params.S, params.K, params.T, params.r, params.sigma)
+    call_val = call.item() if hasattr(call, "item") else call
+    put_val  = put.item()  if hasattr(put,  "item") else put
+    return {"call": call_val, "put": put_val}
 
 class HeatmapRequest(BaseModel):
     base_S: float
