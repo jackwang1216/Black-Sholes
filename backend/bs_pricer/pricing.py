@@ -14,6 +14,7 @@ class BlackScholes:
 
     @staticmethod
     def price(S, K, T, r, sigma):
+        validate_parameters(S, K, T, sigma, r)
         S     = np.asarray(S,     dtype=float)
         sigma = np.asarray(sigma, dtype=float)
 
@@ -42,3 +43,15 @@ class BlackScholes:
         implement later
         """
         pass
+
+def profit_loss(S, K, T, r, sigma, C_actual, P_actual):
+    call_theo, put_theo = BlackScholes.price(S, K, T, r, sigma)
+    call_net = call_theo - C_actual
+    put_net  = put_theo - P_actual
+
+    return {
+        "call_theo": call_theo,
+        "put_theo": put_theo,
+        "call_net": call_net,
+        "put_net": put_net
+    }

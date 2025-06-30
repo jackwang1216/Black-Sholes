@@ -1,11 +1,13 @@
-def validate_parameters(S: float, K: float, T: float, sigma: float, r: float) -> None:
-    if not isinstance(S, (int, float)) or S <= 0:
-        raise ValueError(f"Spot price S must be positive number; got {S}")
-    if not isinstance(K, (int, float)) or K <= 0:
-        raise ValueError(f"Strike price K must be positive number; got {K}")
-    if not isinstance(T, (int, float)) or T < 0:
-        raise ValueError(f"Time to expiry T must be non-negative; got {T}")
-    if not isinstance(sigma, (int, float)) or sigma < 0:
-        raise ValueError(f"Volatility σ must be non-negative; got {sigma}")
+import numpy as np
+
+def validate_parameters(S, K, T, sigma, r) -> None:
+    if np.any(np.asarray(S) <= 0):
+        raise ValueError("All spot prices must be positive.")
+    if K <= 0:
+        raise ValueError("Strike price K must be a positive number.")
+    if T < 0:
+        raise ValueError("Time to expiry T must be non-negative.")
+    if np.any(np.asarray(sigma) < 0):
+        raise ValueError("Volatility sigma must be non-negative.")
     if not isinstance(r, (float, int)):
         raise ValueError("Interest rate r must be a number.")

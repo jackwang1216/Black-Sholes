@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from bs_pricer.pricing import BlackScholes
+from bs_pricer.pricing import BlackScholes, profit_loss
 import numpy as np
 from bs_pricer.heatmap import generate_heatmap_grid
 
@@ -56,4 +56,20 @@ async def generate_heatmap(params: HeatmapRequest):
     return {
         "call": call_grid.tolist(),
         "put": put_grid.tolist()
+    }
+
+class PLHeatmapRequest(HeatmapRequest):
+    C_actual: float
+    P_actual: float
+
+@app.post("/pl_heatmap")
+async def get_pl_heatmap(params: PLHeatmapRequest):
+    S_shocks = np.linspace(params.S_shock_min, params.S_shock_max, params.n_shocks)
+    sigma_shocks = np.linspace(params.sigma_shock_min, params.sigma_shock_max, params.n_shocks)
+    S_grid, sigma_grid = np.meshgrid(S_shocks, sigma_shocks, indexing="xy")
+
+    pl_data = profit_loss(S=S_grid, K=params.K, T=params.T, r=params.r, sigma=sigma_grid, C_actual=params.C_actual, P_actual=params.P_actual)
+    return {
+        "call_net_grid": pl_data["call_net"].tolist(),
+        "put_net_grid": pl_data["put_net"].tolist()
     }

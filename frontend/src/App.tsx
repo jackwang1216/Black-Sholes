@@ -67,6 +67,13 @@ function App() {
   const [volAxis, setVolAxis] = useState<number[]>([]);
   const n_shocks = 10;
 
+  //State for profit loss
+  const [activeTab, setActiveTab] = useState("price")
+  const [actualCallPrice, setActualCallPrice] = useState(13.86)
+  const [actualPutPrice, setActualPutPrice] = useState(3.98)
+  const [callNetGrid, setCallNetGrid] = useState<number[][]>([])
+  const [putNetGrid, setPutNetGrid] = useState<number[][]>([])
+
   const handleCalculate = useCallback(async () => {
     try {
       const payload = {
@@ -125,13 +132,55 @@ function App() {
     riskFreeRate,
   ]);
 
+  const handleGeneratePLHeatmap = useCallback(async () => {
+    try {
+      const payload = {
+        base_S: underlyingPrice,
+        base_sigma: volatility,
+        S_shock_min: minSpot,
+        S_shock_max: maxSpot,
+        sigma_shock_min: minVol,
+        sigma_shock_max: maxVol,
+        n_shocks: n_shocks,
+        K: strikePrice,
+        T: expiry,
+        r: riskFreeRate,
+        C_actual: actualCallPrice,
+        P_actual: actualPutPrice,
+      };
+      const response = await axios.post(
+        "http://localhost:8000/pl_heatmap",
+        payload
+      );
+      const data = response.data;
+      setCallNetGrid(data.call_net_grid);
+      setPutNetGrid(data.put_net_grid);
+    } catch (error) {
+      console.error("There was a problem with your axios operation:", error);
+    }
+  }, [
+    underlyingPrice,
+    volatility,
+    minSpot,
+    maxSpot,
+    minVol,
+    maxVol,
+    strikePrice,
+    expiry,
+    riskFreeRate,
+    actualCallPrice,
+    actualPutPrice,
+  ]);
+
+
   useEffect(() => {
     handleCalculate();
   }, [handleCalculate]);
 
   useEffect(() =>{
     handleGenerateHeatmap();
-  }, [handleGenerateHeatmap]);
+    handleGeneratePLHeatmap();
+  }, [handleGenerateHeatmap, handleGeneratePLHeatmap]);
 
   const plotLayout: Partial<Layout> = {
     paper_bgcolor: "transparent",
@@ -171,11 +220,16 @@ function App() {
         <div className="border-t border-gray-700 my-6"></div>
 
         <h2 className="text-xl font-semibold mb-4 text-white">Heatmap Parameters</h2>
-        <div className="p-4 bg-gray-900/50 rounded-lg">
-            <InputGroup label="Min Spot Price" value={minSpot} setValue={setMinSpot} step={0.01} />
-            <InputGroup label="Max Spot Price" value={maxSpot} setValue={setMaxSpot} step={0.01} />
-            <HeatmapSlider label="Min Volatility" value={minVol} setValue={setMinVol} min={0.01} max={1.0} step={0.01} />
-            <HeatmapSlider label="Max Volatility" value={maxVol} setValue={setMaxVol} min={0.01} max={1.0} step={0.01} />
+        <div className="bg-gray-900/50 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Heatmap Parameters</h2>
+          <InputGroup label="Min Spot Price" value={minSpot} setValue={setMinSpot} step={0.01} />
+          <InputGroup label="Max Spot Price" value={maxSpot} setValue={setMaxSpot} step={0.01} />
+          <InputGroup label="Min Volatility" value={minVol} setValue={setMinVol} step={0.01} />
+          <InputGroup label="Max Volatility" value={maxVol} setValue={setMaxVol} step={0.01} />
+          <hr className="my-4 border-gray-700" />
+          <h2 className="text-xl font-semibold mb-4">P/L Parameters</h2>
+          <InputGroup label="Actual Call Price" value={actualCallPrice} setValue={setActualCallPrice} step={0.01} />
+          <InputGroup label="Actual Put Price" value={actualPutPrice} setValue={setActualPutPrice} step={0.01} />
         </div>
       </aside>
 
@@ -206,52 +260,121 @@ function App() {
             Explore how option prices fluctuate with varying 'Spot Prices' and 'Volatility' levels while maintaining a constant 'Strike Price'.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h3 className="text-xl font-semibold mb-4">Call Price Heatmap</h3>
-            <Plot
-              data={[
-                {
-                  z: callGrid,
-                  x: spotAxis,
-                  y: volAxis,
-                  type: "heatmap",
-                  colorscale: "Viridis",
-                  showscale: true,
-                  text: callGrid.map((row) =>
-                    row.map((val) => val.toFixed(2))
-                  ) as any,
-                  texttemplate: "%{text}",
-                  textfont: { size: 12, color: "white" },
-                },
-              ]}
-              layout={plotLayout}
-              className="w-full h-96"
-            />
-          </div>
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h3 className="text-xl font-semibold mb-4">Put Price Heatmap</h3>
-            <Plot
-              data={[
-                {
-                  z: putGrid,
-                  x: spotAxis,
-                  y: volAxis,
-                  type: "heatmap",
-                  colorscale: "Cividis",
-                  showscale: true,
-                  text: putGrid.map((row) =>
-                    row.map((val) => val.toFixed(2))
-                  ) as any,
-                  texttemplate: "%{text}",
-                  textfont: { size: 12, color: "white" },
-                },
-              ]}
-              layout={plotLayout}
-              className="w-full h-96"
-            />
-          </div>
+        {/* Tab Buttons */}
+        <div className="flex space-x-2 mb-6">
+          <button 
+            onClick={() => setActiveTab('price')}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              activeTab === 'price' ? 'bg-cyan-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}>
+            Price Heatmaps
+          </button>
+          <button 
+            onClick={() => setActiveTab('pl')}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              activeTab === 'pl' ? 'bg-cyan-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}>
+            P/L Heatmaps
+          </button>
         </div>
+
+        {activeTab === 'price' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Call Price Heatmap</h3>
+              <Plot
+                data={[
+                  {
+                    z: callGrid,
+                    x: spotAxis,
+                    y: volAxis,
+                    type: "heatmap",
+                    colorscale: "Viridis",
+                    showscale: true,
+                    text: callGrid.map((row) =>
+                      row.map((val) => val.toFixed(2))
+                    ) as any,
+                    texttemplate: "%{text}",
+                    textfont: { size: 12, color: "white" },
+                  },
+                ]}
+                layout={plotLayout}
+                className="w-full h-96"
+              />
+            </div>
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Put Price Heatmap</h3>
+              <Plot
+                data={[
+                  {
+                    z: putGrid,
+                    x: spotAxis,
+                    y: volAxis,
+                    type: "heatmap",
+                    colorscale: "Cividis",
+                    showscale: true,
+                    text: putGrid.map((row) =>
+                      row.map((val) => val.toFixed(2))
+                    ) as any,
+                    texttemplate: "%{text}",
+                    textfont: { size: 12, color: "white" },
+                  },
+                ]}
+                layout={plotLayout}
+                className="w-full h-96"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'pl' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Call P/L Heatmap</h3>
+              <Plot
+                data={[
+                  {
+                    z: callNetGrid,
+                    x: spotAxis,
+                    y: volAxis,
+                    type: "heatmap",
+                    colorscale: "RdBu",
+                    showscale: true,
+                    text: callNetGrid.map((row) =>
+                      row.map((val) => val.toFixed(2))
+                    ) as any,
+                    texttemplate: "%{text}",
+                    textfont: { size: 12, color: "white" },
+                  },
+                ]}
+                layout={plotLayout}
+                className="w-full h-96"
+              />
+            </div>
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Put P/L Heatmap</h3>
+              <Plot
+                data={[
+                  {
+                    z: putNetGrid,
+                    x: spotAxis,
+                    y: volAxis,
+                    type: "heatmap",
+                    colorscale: "RdBu",
+                    showscale: true,
+                    text: putNetGrid.map((row) =>
+                      row.map((val) => val.toFixed(2))
+                    ) as any,
+                    texttemplate: "%{text}",
+                    textfont: { size: 12, color: "white" },
+                  },
+                ]}
+                layout={plotLayout}
+                className="w-full h-96"
+              />
+            </div>
+          </div>
+        )}
       </main>
     </div>
     </>
